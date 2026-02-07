@@ -1,0 +1,7 @@
+{
+  "name": "GroqMind - Llama 4 Scout",
+  "description": "A dual-mode AI interface featuring text chat and voice conversation using Groq's ultra-fast inference with Llama 4 Scout, Whisper, and Orpheus.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
