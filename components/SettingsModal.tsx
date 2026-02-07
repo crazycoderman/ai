@@ -1,7 +1,7 @@
 import React from 'react';
 import WindowFrame from './WindowFrame';
-import { Settings, Check } from 'lucide-react';
-import { AppSettings, AIModelId, AppTheme } from '../types';
+import { Settings, Check, Volume2 } from 'lucide-react';
+import { AppSettings, AIModelId, AppTheme, AVAILABLE_VOICES } from '../types';
 
 interface SettingsModalProps {
   settings: AppSettings;
@@ -24,9 +24,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onUpdate, onClo
       >
         <div className="p-4 space-y-6 text-win98-text text-sm font-sans">
           
-          {/* API Key Section */}
+          {/* Groq API Key Section */}
           <div className="space-y-2">
-            <label className="block font-bold">Groq API Key:</label>
+            <label className="block font-bold">Groq API Key (Chat/Voice):</label>
             <div className="bg-white p-1 shadow-in">
                 <input 
                 type="password" 
@@ -36,14 +36,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onUpdate, onClo
                 placeholder="gsk_..."
                 />
             </div>
-            <p className="text-xs text-gray-600">Key is stored locally in your browser.</p>
+            <p className="text-[10px] text-gray-500">Required for Llama, Whisper, and Orpheus models.</p>
           </div>
 
           <div className="h-px bg-win98-gray-dark border-b border-win98-gray-light" />
 
           {/* Model Selection */}
           <div className="space-y-2">
-            <label className="block font-bold">AI Brain (Model):</label>
+            <label className="block font-bold">AI Brain:</label>
             <div className="space-y-1 bg-white p-2 shadow-in h-24 overflow-y-auto">
               <label className="flex items-center gap-2 cursor-pointer hover:bg-win98-blue hover:text-white px-1">
                 <input 
@@ -73,6 +73,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onUpdate, onClo
                 <span>Qwen 3 32B (Reasoning)</span>
               </label>
             </div>
+          </div>
+
+          <div className="h-px bg-win98-gray-dark border-b border-win98-gray-light" />
+          
+          {/* Voice Selection */}
+          <div className="space-y-2">
+            <label className="block font-bold flex items-center gap-2">
+              <Volume2 size={14} /> Voice ID:
+            </label>
+            <select 
+              value={settings.voice}
+              onChange={(e) => handleChange('voice', e.target.value)}
+              className="w-full bg-white border border-gray-500 shadow-in px-2 py-1 outline-none capitalize"
+            >
+              {AVAILABLE_VOICES.map(voice => (
+                <option key={voice} value={voice}>{voice}</option>
+              ))}
+            </select>
+            <p className="text-[10px] text-gray-500">Determines the AI's speaking voice.</p>
           </div>
 
           <div className="h-px bg-win98-gray-dark border-b border-win98-gray-light" />

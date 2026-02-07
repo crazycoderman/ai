@@ -9,22 +9,49 @@ const getClient = (apiKey: string) => {
   });
 };
 
+interface CompletionOptions {
+  isReasoning?: boolean;
+}
+
 export const streamChatCompletion = async (
   apiKey: string,
   modelId: AIModelId,
   messages: { role: 'user' | 'assistant' | 'system'; content: string }[],
-  onChunk: (chunk: string) => void
+  onChunk: (chunk: string) => void,
+  options: CompletionOptions = {}
 ) => {
   try {
     const groq = getClient(apiKey);
-    const config = MODEL_CONFIGS[modelId];
+    const baseConfig = MODEL_CONFIGS[modelId];
+    
+    const requestConfig = { ...baseConfig };
+    let messagesToSend = [...messages];
+
+    // Apply reasoning effort/prompt if requested and model is Qwen
+    if (modelId === 'qwen/qwen3-32b' && options.isReasoning) {
+       // Using 'reasoning_effort' might not be supported by all models, but we'll include it.
+       // Crucially, we add a system prompt to ensure <think> tags are used for the UI to parse.
+       requestConfig.reasoning_effort = "medium"; 
+       
+       const systemInstruction = "You are in reasoning mode. Please output your thought process enclosed in <think> and </think> tags before providing the final answer.";
+       
+       const sysIndex = messagesToSend.findIndex(m => m.role === 'system');
+       if (sysIndex >= 0) {
+         messagesToSend[sysIndex] = {
+           ...messagesToSend[sysIndex],
+           content: messagesToSend[sysIndex].content + " " + systemInstruction
+         };
+       } else {
+         messagesToSend.unshift({ role: 'system', content: systemInstruction });
+       }
+    }
 
     const chatCompletion = await groq.chat.completions.create({
-      messages: messages,
+      messages: messagesToSend as any,
       model: modelId,
       stream: true,
       stop: null,
-      ...config
+      ...requestConfig
     });
 
     for await (const chunk of chatCompletion) {
@@ -42,18 +69,39 @@ export const streamChatCompletion = async (
 export const getChatCompletion = async (
     apiKey: string,
     modelId: AIModelId,
-    messages: { role: 'user' | 'assistant' | 'system'; content: string }[]
+    messages: { role: 'user' | 'assistant' | 'system'; content: string }[],
+    options: CompletionOptions = {}
   ): Promise<string> => {
     try {
       const groq = getClient(apiKey);
-      const config = MODEL_CONFIGS[modelId];
+      const baseConfig = MODEL_CONFIGS[modelId];
+      
+      const requestConfig = { ...baseConfig };
+      let messagesToSend = [...messages];
+
+      // Apply reasoning effort/prompt if requested and model is Qwen
+      if (modelId === 'qwen/qwen3-32b' && options.isReasoning) {
+         requestConfig.reasoning_effort = "medium";
+
+         const systemInstruction = "You are in reasoning mode. Please output your thought process enclosed in <think> and </think> tags before providing the final answer.";
+       
+         const sysIndex = messagesToSend.findIndex(m => m.role === 'system');
+         if (sysIndex >= 0) {
+           messagesToSend[sysIndex] = {
+             ...messagesToSend[sysIndex],
+             content: messagesToSend[sysIndex].content + " " + systemInstruction
+           };
+         } else {
+           messagesToSend.unshift({ role: 'system', content: systemInstruction });
+         }
+      }
 
       const chatCompletion = await groq.chat.completions.create({
-        messages: messages,
+        messages: messagesToSend as any,
         model: modelId,
         stream: false,
         stop: null,
-        ...config
+        ...requestConfig
       });
   
       return chatCompletion.choices[0]?.message?.content || "";
@@ -80,12 +128,12 @@ export const transcribeAudio = async (apiKey: string, audioFile: File): Promise<
   }
 };
 
-export const generateSpeech = async (apiKey: string, text: string): Promise<ArrayBuffer> => {
+export const generateSpeech = async (apiKey: string, text: string, voice: string = VOICE_ID): Promise<ArrayBuffer> => {
   try {
     const groq = getClient(apiKey);
     const wav = await groq.audio.speech.create({
       model: SPEECH_MODEL,
-      voice: VOICE_ID as any, 
+      voice: voice as any, 
       response_format: "wav",
       input: text,
     });
