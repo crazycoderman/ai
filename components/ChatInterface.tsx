@@ -8,7 +8,7 @@ interface ChatInterfaceProps {
   settings: AppSettings;
 }
 
-const ReasoningAccordion = ({ content, styles, defaultOpen = false }: { content: string, styles: any, defaultOpen?: boolean }) => {
+const ReasoningAccordion: React.FC<{ content: string, styles: any, defaultOpen?: boolean }> = ({ content, styles, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
