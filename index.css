@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #008080;
+    margin: 0;
+    overflow: hidden;
+  }
+}
+
+/* Retro Scrollbar */
+::-webkit-scrollbar {
+  width: 16px;
+  background: #dfdfdf;
+}
+::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border: 1px solid #fff;
+  box-shadow: inset -1px -1px #000, inset 1px 1px #fff;
+}
+::-webkit-scrollbar-button {
+  background: #c0c0c0;
+  width: 16px;
+  height: 16px;
+  box-shadow: inset -1px -1px #000, inset 1px 1px #fff;
+}
+
+/* CRT Effect Overlay */
+.crt::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  z-index: 2;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}
+
+.win98-text-shadow {
+  text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
+}
