@@ -9,7 +9,13 @@ export const useAudioRecorder = () => {
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      
+      // Detect supported mime type
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") 
+        ? "audio/webm;codecs=opus" 
+        : "audio/mp4";
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -35,7 +41,8 @@ export const useAudioRecorder = () => {
       }
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        const mimeType = mediaRecorder.mimeType || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
         setIsRecording(false);
@@ -43,8 +50,9 @@ export const useAudioRecorder = () => {
         // Stop all tracks to release microphone
         mediaRecorder.stream.getTracks().forEach(track => track.stop());
         
-        // Create a File object for the API
-        const file = new File([blob], "recording.wav", { type: 'audio/wav' });
+        // Create a File object for the API with correct extension
+        const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+        const file = new File([blob], `recording.${ext}`, { type: mimeType });
         resolve(file);
       };
 

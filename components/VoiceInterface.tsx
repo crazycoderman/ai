@@ -45,14 +45,6 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ settings }) => {
     analyser.smoothingTimeConstant = 0.4;
     analyserRef.current = analyser;
 
-    // We need to connect the microphone stream to this analyser when recording starts.
-    // However, useAudioRecorder manages the MediaRecorder internally. 
-    // To visualize AND record, we need to tap into the stream.
-    // For simplicity in this structure, we'll request a separate stream for VAD/Viz if needed,
-    // OR ideally update useAudioRecorder to expose the stream.
-    // For this implementation, we will request the stream here separately to ensure low-latency VAD access
-    // distinct from the recording logic, or we rely on the visualizer loop to drive logic.
-
     return () => {
       audioContextRef.current?.close();
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
@@ -107,8 +99,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ settings }) => {
              if (silenceStartTimeRef.current === 0) silenceStartTimeRef.current = currentTime;
              
              const silenceDuration = currentTime - silenceStartTimeRef.current;
-             const speechDuration = lastSpeechTimeRef.current - (silenceStartTimeRef.current - 1000); // Approximate
-
+             
              if (silenceDuration > SILENCE_DURATION) {
                  // Silence timeout reached!
                  handleStopAndProcess();
@@ -210,11 +201,18 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ settings }) => {
     isProcessingRef.current = true; // Lock
     setStatus('processing');
     
-    const audioFile = await stopRecording();
-    
-    if (audioFile) {
-        await processConversationTurn(audioFile);
-    } else {
+    try {
+        const audioFile = await stopRecording();
+        
+        if (audioFile && audioFile.size > 0) {
+            await processConversationTurn(audioFile);
+        } else {
+            console.warn("Audio file empty or null");
+            setStatus('idle');
+            isProcessingRef.current = false;
+        }
+    } catch (e) {
+        console.error("Error stopping recording:", e);
         setStatus('idle');
         isProcessingRef.current = false;
     }
@@ -242,11 +240,16 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ settings }) => {
       // 2. Chat Completion
       let cleanContent = transcript;
       let isReasoning = false;
+      const lowerTranscript = transcript.toLowerCase();
       
-      if (settings.model === 'qwen/qwen3-32b' && (transcript.toLowerCase().includes('/think') || transcript.toLowerCase().startsWith('slash think'))) {
-          isReasoning = true;
-          cleanContent = transcript.replace(/\/think/i, '').replace(/slash think/i, '').trim();
-          if(!cleanContent) cleanContent = "Think about this.";
+      // Strict logic for reasoning trigger
+      if (settings.model === 'qwen/qwen3-32b') {
+        if (lowerTranscript.includes('/think') || lowerTranscript.includes('slash think')) {
+            isReasoning = true;
+            // Remove the trigger command to avoid polluting the prompt
+            cleanContent = transcript.replace(/\/think/i, '').replace(/slash think/i, '').trim();
+            if(!cleanContent) cleanContent = "Think about this.";
+        }
       }
 
       const newHistory = [
@@ -281,11 +284,13 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ settings }) => {
             handleStartListening();
           } else {
             setStatus('idle');
+            isProcessingRef.current = false;
           }
       }
 
     } catch (error) {
       console.error("Conversation error:", error);
+      setCurrentTranscript("Error processing request. Check console/API key.");
       setStatus('idle');
       isProcessingRef.current = false;
     }

@@ -24,15 +24,13 @@ export const streamChatCompletion = async (
     const groq = getClient(apiKey);
     const baseConfig = MODEL_CONFIGS[modelId];
     
+    // Create a clean config object to avoid mutating constants or passing invalid params
     const requestConfig = { ...baseConfig };
     let messagesToSend = [...messages];
 
-    // Apply reasoning effort/prompt if requested and model is Qwen
+    // Apply reasoning prompt if requested and model is Qwen
     if (modelId === 'qwen/qwen3-32b' && options.isReasoning) {
-       // Using 'reasoning_effort' might not be supported by all models, but we'll include it.
-       // Crucially, we add a system prompt to ensure <think> tags are used for the UI to parse.
-       requestConfig.reasoning_effort = "medium"; 
-       
+       // We rely on System Prompt for reasoning in Qwen, as the API param might not be supported.
        const systemInstruction = "You are in reasoning mode. Please output your thought process enclosed in <think> and </think> tags before providing the final answer.";
        
        const sysIndex = messagesToSend.findIndex(m => m.role === 'system');
@@ -54,7 +52,7 @@ export const streamChatCompletion = async (
       ...requestConfig
     });
 
-    for await (const chunk of chatCompletion) {
+    for await (const chunk of (chatCompletion as AsyncIterable<any>)) {
       const content = chunk.choices[0]?.delta?.content || '';
       if (content) {
         onChunk(content);
@@ -79,10 +77,8 @@ export const getChatCompletion = async (
       const requestConfig = { ...baseConfig };
       let messagesToSend = [...messages];
 
-      // Apply reasoning effort/prompt if requested and model is Qwen
+      // Apply reasoning prompt if requested and model is Qwen
       if (modelId === 'qwen/qwen3-32b' && options.isReasoning) {
-         requestConfig.reasoning_effort = "medium";
-
          const systemInstruction = "You are in reasoning mode. Please output your thought process enclosed in <think> and </think> tags before providing the final answer.";
        
          const sysIndex = messagesToSend.findIndex(m => m.role === 'system');
